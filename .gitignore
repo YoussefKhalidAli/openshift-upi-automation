@@ -1,0 +1,13 @@
+# Openshift data
+ocp-install
+.env
+
+# Terraform data
+terraform/openshift-aws/.terraform
+*.tfstate
+*.tfstate.backup
+*.tfvars
+terraform/openshift-aws/generated
+
+# AWS User-data
+user-data/*-data
