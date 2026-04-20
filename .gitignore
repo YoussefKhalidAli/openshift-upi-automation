@@ -8,6 +8,7 @@ terraform/openshift-aws/.terraform
 *.tfstate.backup
 *.tfvars
 terraform/openshift-aws/generated
+vpc.tf
 
 # AWS User-data
 user-data/*-data

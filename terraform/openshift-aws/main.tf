@@ -9,10 +9,9 @@ provider "aws" {
 resource "aws_network_interface" "enis" {
   for_each = var.instances
 
-  subnet_id       = aws_subnet.main.id
+  subnet_id       = "subnet-0b00b43a13acdb448"
   private_ips     = [each.value.private_ip]
-  security_groups = each.value.security_groups
-
+  security_groups = ["sg-0aad32212ee911474"]
   tags = {
     Name = "${each.key}-eni"
   }
