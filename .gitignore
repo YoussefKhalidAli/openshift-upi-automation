@@ -12,3 +12,7 @@ vpc.tf
 
 # AWS User-data
 user-data/*-data
+
+# Ansible
+inventory/hosts.ini
+ignitions

@@ -1,0 +1,53 @@
+- name: Create neccessary directories on master
+  file:
+    state: directory
+    path: "{{ item }}"
+    owner: core
+    group: core
+  loop:
+    - "/ocp"
+    - "/ocp/01-mcp"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Copy kubeconfig to master
+  copy:
+    src: "{{ kubeconfig }}"
+    dest: /home/core/kube
+    owner: core
+    group: core
+    mode: "0600"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Get all CSRs
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig }}"
+    api_version: certificates.k8s.io/v1
+    kind: CertificateSigningRequest
+  register: csr_list
+
+- name: Approve pending CSRs
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: certificates.k8s.io/v1
+      kind: CertificateSigningRequest
+      metadata:
+        name: "{{ item.metadata.name }}"
+      status:
+        conditions:
+          - type: Approved
+            status: "True"
+            reason: AnsibleApprove
+            message: "Approved by Ansible"
+  loop: "{{ csr_list.resources }}"
+  when: item.status.conditions is not defined
+
+- name: Copy kubeconfig to master(default dir)
+  copy:
+    src: "{{ kubeconfig }}"
+    dest: ~/.kube/config
+    owner: core
+    group: core
+    mode: "0600"
+  delegate_to: "{{ groups['masters'][0] }}"

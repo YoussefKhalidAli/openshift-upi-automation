@@ -1,0 +1,29 @@
+- name: add label & taint to infra node
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: patched
+    kind: node
+    name: "{{ infra0.name }}"
+    definition:
+      metadata:
+        labels:
+          node-role.kubernetes.io/infra: ""
+      spec:
+        taints:
+          - key: node-role.kubernetes.io/infra
+            effect: NoSchedule
+
+- name: add label & taint to odf node
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: patched
+    kind: node
+    name: "{{ odf0.name }}"
+    definition:
+      metadata:
+        labels:
+          node-role.kubernetes.io/openshift-storage: ""
+      spec:
+        taints:
+          - key: cluster.ocs.openshift.io/openshift-storage
+            effect: NoSchedule

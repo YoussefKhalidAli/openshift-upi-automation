@@ -1,0 +1,36 @@
+01. Create infra and ODF machinesets
+02. Create infra and odf MCP
+03. Migrate default ingress controller and registry to infra nodes
+04. Disabling project self provisioning
+05. Config localusers htpasswd identity provider
+06. Configure OAuth with Active Directory
+07. Remove default kubeadmin user
+08. Syncing specific groups  from ldap
+09. Apply chrony machineconfig
+10. Remove the worker label from infra and odf nodes
+11. Change ingress controller cert
+12. Change api cert
+13. Create additional Ingress controller for external load balancing if needed
+14. Config oc bash completion
+15. Deploy ODF
+16. Config storage for monitoring stack
+17. Install logging stack
+18. Install FIM operator
+19. Install Compliance operator , then do compliense scan based on specific profiles
+20. Define project template
+21. config internal image registry to use noobaa object storage 
+	1. create obc from webconsole
+	2. create secret
+	3. edit image registry
+22. config list of allawed registry
+	1. add jfrog cert
+	2. oc edit images.config.openshift.io
+23. config egress subnets on infra nodes
+24. config cluster autoscaler
+25. create etcd backup cronjob
+26. install kasten from helm
+	1 add kasten values 
+	2 upgrade kasten
+27. install twistlock
+28. install instana
+29. config etcd-backup to nfs server or any external storage out side the cluster

@@ -1,0 +1,10 @@
+- name: OCP Post installation tasks
+  hosts: localhost
+  gather_facts: yes
+  roles:
+    - name: 00. setup cluster
+      role: setup
+    - name: 01. Create infra and ODF machinesets
+      role: create-machinesets
+    - name: 02. Create infra and odf MCP
+      role: create-mcp

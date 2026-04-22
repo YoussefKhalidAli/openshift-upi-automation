@@ -1,0 +1,27 @@
+kubeconfig: "{{ playbook_dir }}/ocp-install/auth/kubeconfig"
+
+master:
+  name: ip-10-0-1-101
+  ip: 10.0.1.101
+
+odf0:
+  name: ip-10-0-1-222
+  ip: 10.0.1.222
+
+infra0:
+  name: ip-10-0-1-100
+  ip: 10.0.1.100
+
+workers:
+  worker0:
+    name: ip-10-0-1-200
+    ip: 10.0.1.200
+  worker1:
+    name: ip-10-0-1-201
+    ip: 10.0.1.201
+  worker2:
+    name: ip-10-0-1-202
+    ip: 10.0.1.202
+  worker3:
+    name: ip-10-0-1-203
+    ip: 10.0.1.203
