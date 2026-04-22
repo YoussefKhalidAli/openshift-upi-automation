@@ -8,3 +8,5 @@
       role: create-machinesets
     - name: 02. Create infra and odf MCP
       role: create-mcp
+    - name: 03. Migrate default ingress controller and registry to infra nodes
+      role: migrate
