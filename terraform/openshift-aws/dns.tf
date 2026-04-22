@@ -7,7 +7,7 @@ resource "aws_route53_record" "bootstrap" {
   name    = "bootstrap.mycluster.openshift.net."
   type    = "A"
   ttl     = 60
-  records = ["10.0.1.114"]
+  records = ["10.0.1.100"]
 }
 
 resource "aws_route53_record" "master0" {
@@ -15,23 +15,15 @@ resource "aws_route53_record" "master0" {
   name    = "control-plane0.mycluster.openshift.net."
   type    = "A"
   ttl     = 60
-  records = ["10.0.1.71"]
+  records = ["10.0.1.101"]
 }
 
-resource "aws_route53_record" "master1" {
+resource "aws_route53_record" "infra0" {
   zone_id = aws_route53_zone.main.zone_id
-  name    = "control-plane1.mycluster.openshift.net."
+  name    = "infra0.mycluster.openshift.net."
   type    = "A"
   ttl     = 60
-  records = ["10.0.1.163"]
-}
-
-resource "aws_route53_record" "master2" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "control-plane2.mycluster.openshift.net."
-  type    = "A"
-  ttl     = 60
-  records = ["10.0.1.205"]
+  records = ["10.0.1.100"]
 }
 
 resource "aws_route53_record" "worker0" {
@@ -39,56 +31,66 @@ resource "aws_route53_record" "worker0" {
   name    = "worker0.mycluster.openshift.net."
   type    = "A"
   ttl     = 60
-  records = ["10.0.1.18"]
+  records = ["10.0.1.200"]
 }
 
 resource "aws_route53_record" "worker1" {
   zone_id = aws_route53_zone.main.zone_id
   name    = "worker1.mycluster.openshift.net."
   type    = "A"
+  ttl     = 60
+  records = ["10.0.1.201"]
+}
+
+resource "aws_route53_record" "worker2" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "worker2.mycluster.openshift.net."
+  type    = "A"
+  ttl     = 60
+  records = ["10.0.1.202"]
+}
+
+resource "aws_route53_record" "worker3" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "worker3.mycluster.openshift.net."
+  type    = "A"
+  ttl     = 60
+  records = ["10.0.1.203"]
+}
+
+resource "aws_route53_record" "odf0" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "odf0.mycluster.openshift.net."
+  type    = "A"
   ttl     = 300
-  records = ["10.0.1.65"]
+  records = ["10.0.1.222"]
 }
 
 #################################
 # PTR Records (Reverse DNS)
 #################################
 
-resource "aws_route53_record" "ptr_bootstrap" {
+resource "aws_route53_record" "ptr_infra0" {
   zone_id = aws_route53_zone.reverse_10.zone_id
-  name    = "114"
+  name    = "100"
   type    = "PTR"
   ttl     = 60
-  records = ["bootstrap.mycluster.openshift.net."]
+  records = ["infra0.mycluster.openshift.net."]
 }
+
 
 resource "aws_route53_record" "ptr_master0" {
   zone_id = aws_route53_zone.reverse_10.zone_id
-  name    = "71"
+  name    = "101"
   type    = "PTR"
   ttl     = 60
   records = ["control-plane0.mycluster.openshift.net."]
 }
 
-resource "aws_route53_record" "ptr_master1" {
-  zone_id = aws_route53_zone.reverse_10.zone_id
-  name    = "163"
-  type    = "PTR"
-  ttl     = 60
-  records = ["control-plane1.mycluster.openshift.net."]
-}
-
-resource "aws_route53_record" "ptr_master2" {
-  zone_id = aws_route53_zone.reverse_10.zone_id
-  name    = "205"
-  type    = "PTR"
-  ttl     = 60
-  records = ["control-plane2.mycluster.openshift.net."]
-}
 
 resource "aws_route53_record" "ptr_worker0" {
   zone_id = aws_route53_zone.reverse_10.zone_id
-  name    = "18"
+  name    = "200"
   type    = "PTR"
   ttl     = 60
   records = ["worker0.mycluster.openshift.net."]
@@ -96,11 +98,36 @@ resource "aws_route53_record" "ptr_worker0" {
 
 resource "aws_route53_record" "ptr_worker1" {
   zone_id = aws_route53_zone.reverse_10.zone_id
-  name    = "65"
+  name    = "201"
   type    = "PTR"
   ttl     = 60
   records = ["worker1.mycluster.openshift.net."]
 }
+
+resource "aws_route53_record" "ptr_worker2" {
+  zone_id = aws_route53_zone.reverse_10.zone_id
+  name    = "202"
+  type    = "PTR"
+  ttl     = 60
+  records = ["worker2.mycluster.openshift.net."]
+}
+
+resource "aws_route53_record" "ptr_worker3" {
+  zone_id = aws_route53_zone.reverse_10.zone_id
+  name    = "203"
+  type    = "PTR"
+  ttl     = 60
+  records = ["worker3.mycluster.openshift.net."]
+}
+
+resource "aws_route53_record" "ptr_odf0" {
+  zone_id = aws_route53_zone.reverse_10.zone_id
+  name    = "222"
+  type    = "PTR"
+  ttl     = 60
+  records = ["odf0.mycluster.openshift.net."]
+}
+
 
 #################################
 # API DNS

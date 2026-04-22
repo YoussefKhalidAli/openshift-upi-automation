@@ -25,7 +25,7 @@ resource "aws_instance" "nodes" {
   for_each = var.instances
 
   ami           = var.ami
-  instance_type = var.instance_type
+  instance_type = each.value.instance_type
   key_name      = var.key_name
 
   network_interface {
@@ -36,6 +36,17 @@ resource "aws_instance" "nodes" {
   root_block_device {
     volume_size = var.volume_size
     volume_type = "gp3"
+  }
+
+  dynamic "ebs_block_device" {
+    for_each = lookup(each.value, "ebs_block_device", null) != null ? [each.value.ebs_block_device] : []
+
+    content {
+      device_name           = ebs_block_device.value.device_name
+      volume_size           = ebs_block_device.value.volume_size
+      volume_type           = ebs_block_device.value.volume_type
+      delete_on_termination = ebs_block_device.value.delete_on_termination
+    }
   }
 
   tags = {
