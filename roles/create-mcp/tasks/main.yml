@@ -1,0 +1,34 @@
+- name: copy MCP template to master
+  template:
+    src: mcp.yml.j2
+    dest: "{{ master_dir }}/01-mcp/01-{{ item.name }}-mcp.yml"
+  loop:
+    - name: "infra"
+      role: "infra"
+      label: "infra"
+    - name: "odf"
+      role: "odf"
+      label: "openshift-storage"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: copy MCP template locally
+  template:
+    src: mcp.yml.j2
+    dest: "{{ dir }}/01-mcp/01-{{ item.name }}-mcp.yml"
+  become: yes
+  loop:
+    - name: "infra"
+      role: "infra"
+      label: "infra"
+    - name: "odf"
+      role: "odf"
+      label: "openshift-storage"
+
+- name: Create MCP's
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: present
+    src: "{{ dir }}/01-mcp/01-{{ item }}-mcp.yml"
+  loop:
+    - "infra"
+    - "odf"

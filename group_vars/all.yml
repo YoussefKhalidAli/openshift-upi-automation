@@ -1,5 +1,6 @@
 kubeconfig: "{{ playbook_dir }}/ocp-install/auth/kubeconfig"
-
+master_dir: "/home/core/upi"
+dir: "/upi"
 master:
   name: ip-10-0-1-101
   ip: 10.0.1.101

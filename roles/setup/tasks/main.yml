@@ -5,9 +5,18 @@
     owner: core
     group: core
   loop:
-    - "/ocp"
-    - "/ocp/01-mcp"
+    - "{{ master_dir }}"
+    - "{{ master_dir }}/01-mcp"
   delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Create neccessary directories locally
+  file:
+    state: directory
+    path: "{{ item }}"
+  become: yes
+  loop:
+    - "{{ dir }}"
+    - "{{ dir }}/01-mcp"
 
 - name: Copy kubeconfig to master
   copy:
@@ -43,7 +52,7 @@
   loop: "{{ csr_list.resources }}"
   when: item.status.conditions is not defined
 
-- name: Copy kubeconfig to master(default dir)
+- name: Copy kubeconfig to master(default kubeconfig path)
   copy:
     src: "{{ kubeconfig }}"
     dest: ~/.kube/config
