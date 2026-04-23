@@ -1,3 +1,8 @@
+# - name: Install necessary packages
+#   apt:
+#   - apache2-utils
+#   state: present
+
 - name: Create neccessary directories on master
   file:
     state: directory
@@ -7,6 +12,7 @@
   loop:
     - "{{ master_dir }}"
     - "{{ master_dir }}/01-mcp"
+    - "{{ master_dir }}/05-htpass-users"
   delegate_to: "{{ groups['masters'][0] }}"
 
 - name: Create neccessary directories locally
@@ -17,6 +23,7 @@
   loop:
     - "{{ dir }}"
     - "{{ dir }}/01-mcp"
+    - "{{ dir }}/05-htpass-users"
 
 - name: Copy kubeconfig to master
   copy:

@@ -1,0 +1,40 @@
+- name: Manage htpasswd file
+  community.general.htpasswd:
+    path: "{{ dir }}/05-htpass-users/05-htpass-users"
+    name: "ansible-ocp"
+    password: "Autogen@123"
+    hash_scheme: apr_md5_crypt
+    state: present
+  become: yes
+
+- name: Create htpasswd secret
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "htpass-secret"
+        namespace: openshift-config
+      type: generic
+      data:
+        htpasswd: '{{ lookup("file", "{{ dir }}/05-htpass-users/05-htpass-users") | b64encode }}'
+
+- name: Copy htpasswd template to master
+  template:
+    src: htpasswd.yml.j2
+    dest: "{{ master_dir }}/05-htpass-users/htpasswd.yml"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Copy htpasswd template locally
+  template:
+    src: htpasswd.yml.j2
+    dest: "{{ dir }}/05-htpass-users/htpasswd.yml"
+  become: yes
+
+- name: Create Oauth with htpasswd identity provider
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: patched
+    src: "{{ dir }}/05-htpass-users/htpasswd.yml"

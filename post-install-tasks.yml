@@ -12,3 +12,5 @@
       role: migrate
     - name: 04. Disabling project self provisioning
       role: disable-self-provision
+    - name: 05. Config localusers htpasswd identity provider
+      role: htpasswd-provider
