@@ -1,28 +1,21 @@
 - name: Migrate image registry to infra nodes
   kubernetes.core.k8s:
-    api_version: apps/v1
+    api_version: imageregistry.operator.openshift.io/v1
     kubeconfig: "{{ kubeconfig }}"
     state: patched
-    name: "cluster-image-registry-operator"
-    namespace: "openshift-image-registry"
-    kind: "deployment"
+    name: "cluster"
+    kind: "Config"
     definition:
       spec:
-        template:
-          spec:
-            nodeSelector: null
-            tolerations:
-              - key: "node-role.kubernetes.io/infra"
-                operator: "Exists"
-                effect: "NoSchedule"
-              - key: node.kubernetes.io/unreachable
-                effect: NoExecute
-                operator: Exists
-                tolerationSeconds: 120
-              - key: node.kubernetes.io/not-ready
-                effect: NoExecute
-                operator: Exists
-                tolerationSeconds: 120
+        nodeSelector:
+          node-role.kubernetes.io/infra: ""
+        tolerations:
+          - key: "node-role.kubernetes.io/infra"
+            operator: "Exists"
+            effect: "NoSchedule"
+        managementState: Managed
+        storage:
+          emptyDir: {}
 
 - name: Migrate ingress controller to infra nodes
   kubernetes.core.k8s:

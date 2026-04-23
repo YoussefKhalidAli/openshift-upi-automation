@@ -16,3 +16,6 @@ user-data/*-data
 # Ansible
 inventory/hosts.ini
 ignitions
+
+#Notes
+*.txt
