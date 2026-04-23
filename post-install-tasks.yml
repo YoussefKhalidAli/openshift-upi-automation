@@ -10,3 +10,5 @@
       role: create-mcp
     - name: 03. Migrate default ingress controller and registry to infra nodes
       role: migrate
+    - name: 04. Disabling project self provisioning
+      role: disable-self-provision

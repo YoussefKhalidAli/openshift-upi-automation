@@ -1,0 +1,23 @@
+- name: Remove authenticated users group from subjects & disable auto updates
+  kubernetes.core.k8s:
+    api_version: rbac.authorization.k8s.io/v1
+    kubeconfig: "{{ kubeconfig }}"
+    state: patched
+    name: "self-provisioners"
+    kind: "clusterrolebinding"
+    definition:
+      subjects: null
+      metadata:
+        annotations:
+          rbac.authorization.kubernetes.io/autoupdate: "false"
+
+- name: Add custome project request message
+  kubernetes.core.k8s:
+    api_version: config.openshift.io/v1
+    kubeconfig: "{{ kubeconfig }}"
+    state: patched
+    name: "cluster"
+    kind: "Project"
+    definition:
+      spec:
+        projectRequestMessage: "Contact your administrator to request a project"
