@@ -66,6 +66,14 @@ resource "aws_route53_record" "odf0" {
   records = ["10.0.1.222"]
 }
 
+resource "aws_route53_record" "freeipa" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "ipa.openshift.net."
+  type    = "A"
+  ttl     = 300
+  records = ["10.0.3.89"]
+}
+
 #################################
 # PTR Records (Reverse DNS)
 #################################

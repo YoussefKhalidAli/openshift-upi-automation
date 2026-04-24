@@ -1,6 +1,9 @@
 - name: OCP Post installation tasks
   hosts: localhost
   gather_facts: yes
+  module_defaults:
+    group/kubernetes.core.k8s:
+      kubeconfig: "{{ kubeconfig }}"
   roles:
     - name: 00. setup cluster
       role: setup
@@ -14,3 +17,5 @@
       role: disable-self-provision
     - name: 05. Config localusers htpasswd identity provider
       role: htpasswd-provider
+    - name: 06. Configure OAuth with Active Directory
+      role: ldap-provider

@@ -5,7 +5,7 @@
     password: "Autogen@123"
     hash_scheme: apr_md5_crypt
     state: present
-  become: yes
+  become: True
 
 - name: Create htpasswd secret
   kubernetes.core.k8s:
@@ -31,10 +31,27 @@
   template:
     src: htpasswd.yml.j2
     dest: "{{ dir }}/05-htpass-users/htpasswd.yml"
-  become: yes
+  become: True
 
 - name: Create Oauth with htpasswd identity provider
   kubernetes.core.k8s:
     kubeconfig: "{{ kubeconfig }}"
     state: patched
     src: "{{ dir }}/05-htpass-users/htpasswd.yml"
+#TODO: Test this
+# - name: Create Oauth with htpasswd identity provider
+#   kubernetes.core.k8s:
+#     kubeconfig: "{{ kubeconfig }}"
+#     state: patched
+#     definition:
+#       kind: OAuth
+#       metadata:
+#         name: cluster
+#       spec:
+#         identityProviders:
+#           - name: my_htpasswd_provider
+#             mappingMethod: claim
+#             type: HTPasswd
+#             htpasswd:
+#               fileData:
+#                 name: htpass-secret

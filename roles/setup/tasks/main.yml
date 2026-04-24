@@ -1,8 +1,3 @@
-# - name: Install necessary packages
-#   apt:
-#   - apache2-utils
-#   state: present
-
 - name: Create neccessary directories on master
   file:
     state: directory
@@ -19,11 +14,12 @@
   file:
     state: directory
     path: "{{ item }}"
-  become: yes
+  become: True
   loop:
     - "{{ dir }}"
     - "{{ dir }}/01-mcp"
     - "{{ dir }}/05-htpass-users"
+    - "{{ dir }}/06-ldap-provider"
 
 - name: Copy kubeconfig to master
   copy:
@@ -67,3 +63,13 @@
     group: core
     mode: "0600"
   delegate_to: "{{ groups['masters'][0] }}"
+
+# Install helm
+- name: Download Helm install script
+  get_url:
+    url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    dest: /tmp/get_helm.sh
+    mode: "0755"
+
+- name: Run Helm install script
+  command: /tmp/get_helm.sh

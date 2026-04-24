@@ -1,0 +1,59 @@
+- name: Setup LDAP server
+  import_tasks: setup_ldap.yml
+
+- name: Create LDAP Secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "ldap-secret"
+        namespace: openshift-config
+      type: Opaque
+      data:
+        bindPassword: YWRtaW5wYXNzd29yZA==
+#
+# Required if LDAP server created with cert
+# - name: Create LDAP ConfigMap
+#   kubernetes.core.k8s:
+#     state: present
+#     definition:
+#       apiVersion: v1
+#       kind: ConfigMap
+#       metadata:
+#         name: ca-config-map
+#         namespace: openshift-config
+#       data:
+#         ca.crt: |
+#           <CA_certificate_PEM>
+
+- name: Configure OAuth with LDAP
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    state: patched
+    definition:
+      apiVersion: config.openshift.io/v1
+      kind: OAuth
+      metadata:
+        name: cluster
+      spec:
+        identityProviders:
+          - name: ldapidp
+            mappingMethod: claim
+            type: LDAP
+            ldap:
+              url: "ldap://openldap.ldap.svc.cluster.local:389/ou=users,dc=openshift,dc=net?uid?sub?(objectClass=inetOrgPerson)"
+              bindDN: "cn=admin,dc=openshift,dc=net"
+              bindPassword:
+                name: ldap-secret
+              insecure: true
+              attributes:
+                id:
+                  - uid
+                email:
+                  - mail
+                name:
+                  - cn
+                preferredUsername:
+                  - uid

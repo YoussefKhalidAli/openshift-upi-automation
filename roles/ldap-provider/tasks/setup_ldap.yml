@@ -1,0 +1,120 @@
+- name: Create ldap namespace
+  kubernetes.core.k8s:
+    name: "ldap"
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Create LDAP Service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: openldap
+        namespace: "ldap"
+      spec:
+        selector:
+          app: openldap
+        ports:
+          - protocol: TCP
+            port: 389
+            targetPort: 389
+            name: ldap
+
+- name: Allow OpenLDAP to run as any user (SCC)
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: ldap-anyuid-binding
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: system:openshift:scc:anyuid
+      subjects:
+        - kind: ServiceAccount
+          name: default
+          namespace: ldap
+
+- name: Deploy osixia/openldap
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: openldap
+        namespace: "ldap"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: openldap
+        template:
+          metadata:
+            labels:
+              app: openldap
+          spec:
+            containers:
+              - name: openldap
+                image: osixia/openldap:latest
+                env:
+                  - name: LDAP_ORGANISATION
+                    value: "Example Corp"
+                  - name: LDAP_DOMAIN
+                    value: "openshift.net"
+                  - name: LDAP_ADMIN_PASSWORD
+                    value: "adminpassword"
+                ports:
+                  - containerPort: 389
+                    name: ldap
+
+- name: Create temporary LDIF file locally
+  copy:
+    dest: "{{ dir }}/06-ldap-provider/ldif"
+    content: |
+      dn: ou=users,dc=openshift,dc=net
+      objectClass: organizationalUnit
+      ou: users
+
+      dn: uid=ldap-user,ou=users,dc=openshift,dc=net
+      objectClass: inetOrgPerson
+      cn: LDAP User
+      sn: User
+      uid: ldap-user
+      userPassword: {SSHA}Qu7a/Uwx8V0FR+mou78pUroWNvxDBpfk
+  become: True
+
+- name: Copy LDIF to OpenLDAP pod
+  kubernetes.core.k8s_cp:
+    kubeconfig: "{{ kubeconfig }}"
+    namespace: ldap
+    pod: "{{ item }}"
+    local_path: "{{ dir }}/06-ldap-provider/ldif"
+    remote_path: /tmp/new_user.ldif
+  loop: "{{ query('kubernetes.core.k8s', kind='Pod', namespace='ldap', label_selector='app=openldap', kubeconfig=kubeconfig) | map(attribute='metadata.name') | list }}"
+
+- name: Add ldap-user using the copied LDIF
+  kubernetes.core.k8s_exec:
+    kubeconfig: "{{ kubeconfig }}"
+    namespace: ldap
+    pod: "{{ item }}"
+    command: >
+      ldapadd -x
+      -D "cn=admin,dc=openshift,dc=net"
+      -w "adminpassword"
+      -f /tmp/new_user.ldif
+  loop: "{{ query('kubernetes.core.k8s',
+    kind='Pod',
+    namespace='ldap',
+    label_selector='app=openldap',
+    kubeconfig=kubeconfig)
+    | map(attribute='metadata.name') | list }}"
+  register: ldap_add_result
+  failed_when: >
+    ldap_add_result.rc != 0 and
+    ('Already exists' not in ldap_add_result.stderr)
