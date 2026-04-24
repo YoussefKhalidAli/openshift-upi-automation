@@ -26,7 +26,6 @@
 
 - name: Create MCP's
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig }}"
     state: present
     src: "{{ dir }}/01-mcp/01-{{ item }}-mcp.yml"
   loop:

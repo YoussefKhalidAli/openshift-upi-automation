@@ -1,6 +1,5 @@
 - name: add label & taint to infra node
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig }}"
     state: patched
     kind: node
     name: "{{ infra0.name }}"
@@ -15,7 +14,6 @@
 
 - name: add label & taint to odf node
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig }}"
     state: patched
     kind: node
     name: "{{ odf0.name }}"

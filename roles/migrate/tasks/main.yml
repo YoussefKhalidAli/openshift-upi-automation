@@ -1,7 +1,6 @@
 - name: Migrate image registry to infra nodes
   kubernetes.core.k8s:
     api_version: imageregistry.operator.openshift.io/v1
-    kubeconfig: "{{ kubeconfig }}"
     state: patched
     name: "cluster"
     kind: "Config"
@@ -20,7 +19,6 @@
 - name: Migrate ingress controller to infra nodes
   kubernetes.core.k8s:
     api_version: operator.openshift.io/v1
-    kubeconfig: "{{ kubeconfig }}"
     state: patched
     name: "default"
     namespace: "openshift-ingress-operator"

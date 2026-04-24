@@ -9,7 +9,6 @@
 
 - name: Create htpasswd secret
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig }}"
     state: present
     definition:
       apiVersion: v1
@@ -35,13 +34,12 @@
 
 - name: Create Oauth with htpasswd identity provider
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig }}"
     state: patched
     src: "{{ dir }}/05-htpass-users/htpasswd.yml"
 #TODO: Test this
 # - name: Create Oauth with htpasswd identity provider
 #   kubernetes.core.k8s:
-#     kubeconfig: "{{ kubeconfig }}"
+#
 #     state: patched
 #     definition:
 #       kind: OAuth

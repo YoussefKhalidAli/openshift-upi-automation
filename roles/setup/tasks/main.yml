@@ -32,14 +32,12 @@
 
 - name: Get all CSRs
   kubernetes.core.k8s_info:
-    kubeconfig: "{{ kubeconfig }}"
     api_version: certificates.k8s.io/v1
     kind: CertificateSigningRequest
   register: csr_list
 
 - name: Approve pending CSRs
   kubernetes.core.k8s:
-    kubeconfig: "{{ kubeconfig }}"
     state: present
     definition:
       apiVersion: certificates.k8s.io/v1
