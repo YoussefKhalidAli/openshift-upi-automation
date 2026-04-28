@@ -15,7 +15,7 @@
   template:
     src: mcp.yml.j2
     dest: "{{ dir }}/01-mcp/01-{{ item.name }}-mcp.yml"
-  become: yes
+  become: True
   loop:
     - name: "infra"
       role: "infra"

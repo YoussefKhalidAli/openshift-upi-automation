@@ -1,0 +1,26 @@
+- name: Grant cluster-admin to ldap-user
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: ldap-user-cluster-admin
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: cluster-admin
+      subjects:
+        - kind: User
+          name: ldap-user
+          apiGroup: rbac.authorization.k8s.io
+# TODO: Remove kubeadmin user after making ldap data persistent
+# - name: Delete kubeadmin user
+#   kubernetes.core.k8s:
+#     state: absent
+#     definition:
+#       apiVersion: v1
+#       kind: secret
+#       metadata:
+#         name: kubeadmin
+#         namespace: kube-system

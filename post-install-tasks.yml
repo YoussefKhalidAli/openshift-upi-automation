@@ -19,3 +19,5 @@
       role: htpasswd-provider
     - name: 06. Configure OAuth with Active Directory
       role: ldap-provider
+    - name: 07. Remove default kubeadmin user
+      role: remove-kubeadmin
