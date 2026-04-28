@@ -1,0 +1,25 @@
+- name: Apply chrony configuration
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfig
+      metadata:
+        name: "99-{{ item }}-chrony"
+        labels:
+          machineconfiguration.openshift.io/role: "{{ item }}"
+      spec:
+        config:
+          ignition:
+            version: 3.2.0
+          storage:
+            files:
+              - path: /etc/chrony.conf
+                mode: 0644
+                contents:
+                  source: data:,pool%20time1.google.com%20iburst%0Apool%20time2.google.com%20iburst%0A
+  loop:
+    - master
+    - worker
+    - infra
+    - odf

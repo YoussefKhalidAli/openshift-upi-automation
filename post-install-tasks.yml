@@ -23,3 +23,5 @@
       role: remove-kubeadmin
     - name: 08. Syncing specific groups  from ldap
       role: sync-ldap
+    - name: 09. Apply chrony machineconfig
+      role: chrony
