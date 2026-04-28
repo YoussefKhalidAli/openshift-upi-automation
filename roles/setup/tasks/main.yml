@@ -16,6 +16,7 @@
     - "{{ master_dir }}/01-mcp"
     - "{{ master_dir }}/05-htpass-users"
     - "{{ master_dir }}/08-ldap-sync"
+    - "{{ master_dir }}/11-ingress-cert"
   delegate_to: "{{ groups['masters'][0] }}"
 
 - name: Create neccessary directories locally
@@ -29,6 +30,7 @@
     - "{{ dir }}/05-htpass-users"
     - "{{ dir }}/06-ldap-provider"
     - "{{ dir }}/08-ldap-sync"
+    - "{{ dir }}/11-ingress-cert"
 
 - name: Copy kubeconfig to master
   copy:

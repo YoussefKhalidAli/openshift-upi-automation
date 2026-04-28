@@ -1,0 +1,73 @@
+- name: Create private key
+  community.crypto.openssl_privatekey:
+    path: "{{ dir }}/11-ingress-cert/tls.key"
+    size: 2048
+    type: RSA
+  become: True
+
+- name: Create certificate signing request (CSR)
+  community.crypto.openssl_csr:
+    path: "{{ dir }}/11-ingress-cert/tls.csr"
+    privatekey_path: "{{ dir }}/11-ingress-cert/tls.key"
+    common_name: "*.apps.mycluster.openshift.net"
+  become: True
+
+- name: Create self-signed certificate
+  community.crypto.x509_certificate:
+    path: "{{ dir }}/11-ingress-cert/tls.crt"
+    csr_path: "{{ dir }}/11-ingress-cert/tls.csr"
+    privatekey_path: "{{ dir }}/11-ingress-cert/tls.key"
+    provider: selfsigned
+    selfsigned_not_after: "+365d"
+  become: True
+
+- name: Slurp certificate file
+  ansible.builtin.slurp:
+    src: "{{ dir }}/11-ingress-cert/tls.crt"
+  register: slurped_crt
+  become: True
+
+- name: Slurp key file
+  ansible.builtin.slurp:
+    src: "{{ dir }}/11-ingress-cert/tls.key"
+  register: slurped_key
+  become: True
+
+- name: Write certificate to master
+  ansible.builtin.copy:
+    content: "{{ slurped_crt['content'] | b64decode }}"
+    dest: "{{ master_dir }}/11-ingress-cert/tls.crt"
+    mode: "0644"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Write key to master
+  ansible.builtin.copy:
+    content: "{{ slurped_key['content'] | b64decode }}"
+    dest: "{{ master_dir }}/11-ingress-cert/tls.key"
+    mode: "0600"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Create ingress TLS secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: custom-ingress-cert
+        namespace: openshift-ingress
+      type: kubernetes.io/tls
+      data:
+        tls.crt: "{{ slurped_crt['content'] }}"
+        tls.key: "{{ slurped_key['content'] }}"
+
+- name: Patch IngressController to use custom TLS secret
+  kubernetes.core.k8s:
+    state: patched
+    kind: IngressController
+    name: default
+    namespace: openshift-ingress-operator
+    definition:
+      spec:
+        defaultCertificate:
+          name: custom-ingress-cert
