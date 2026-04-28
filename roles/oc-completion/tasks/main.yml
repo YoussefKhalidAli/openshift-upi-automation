@@ -1,0 +1,6 @@
+- name: Install oc bash completion system-wide
+  shell: oc completion bash > /etc/bash_completion.d/oc
+  args:
+    creates: /etc/bash_completion.d/oc
+  become: True
+  delegate_to: "{{ groups['masters'][0] }}"

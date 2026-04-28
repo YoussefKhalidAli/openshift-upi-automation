@@ -31,3 +31,8 @@
       role: change-ingress-cert
     - name: 12. Change api cert
       role: change-api-cert
+    #   TODO: See if this can be applied
+    # - name: 13. Create additional Ingress controller for external load balancing if needed
+    #   role: additional-ingress
+    - name: 14. Config oc bash completion
+      role: oc-completion
