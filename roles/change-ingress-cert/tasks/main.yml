@@ -22,27 +22,27 @@
   become: True
 
 - name: Slurp certificate file
-  ansible.builtin.slurp:
+  slurp:
     src: "{{ dir }}/11-ingress-cert/tls.crt"
-  register: slurped_crt
+  register: slurped_ingress_crt
   become: True
 
 - name: Slurp key file
-  ansible.builtin.slurp:
+  slurp:
     src: "{{ dir }}/11-ingress-cert/tls.key"
-  register: slurped_key
+  register: slurped_ingress_key
   become: True
-
 - name: Write certificate to master
-  ansible.builtin.copy:
-    content: "{{ slurped_crt['content'] | b64decode }}"
+
+  copy:
+    content: "{{ slurped_ingress_crt['content'] | b64decode }}"
     dest: "{{ master_dir }}/11-ingress-cert/tls.crt"
     mode: "0644"
   delegate_to: "{{ groups['masters'][0] }}"
 
 - name: Write key to master
-  ansible.builtin.copy:
-    content: "{{ slurped_key['content'] | b64decode }}"
+  copy:
+    content: "{{ slurped_ingress_key['content'] | b64decode }}"
     dest: "{{ master_dir }}/11-ingress-cert/tls.key"
     mode: "0600"
   delegate_to: "{{ groups['masters'][0] }}"
@@ -58,8 +58,8 @@
         namespace: openshift-ingress
       type: kubernetes.io/tls
       data:
-        tls.crt: "{{ slurped_crt['content'] }}"
-        tls.key: "{{ slurped_key['content'] }}"
+        tls.crt: "{{ slurped_ingress_crt['content'] }}"
+        tls.key: "{{ slurped_ingress_key['content'] }}"
 
 - name: Patch IngressController to use custom TLS secret
   kubernetes.core.k8s:

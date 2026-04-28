@@ -29,3 +29,5 @@
       role: remove-label
     - name: 11. Change ingress controller cert
       role: change-ingress-cert
+    - name: 12. Change api cert
+      role: change-api-cert

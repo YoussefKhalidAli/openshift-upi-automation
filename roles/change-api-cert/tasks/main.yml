@@ -1,0 +1,81 @@
+- name: Create API private key
+  community.crypto.openssl_privatekey:
+    path: "{{ dir }}/12-api-cert/tls.key"
+    size: 2048
+    type: RSA
+  become: True
+
+- name: Create API certificate signing request (CSR)
+  community.crypto.openssl_csr:
+    path: "{{ dir }}/12-api-cert/tls.csr"
+    privatekey_path: "{{ dir }}/12-api-cert/tls.key"
+    common_name: "api.mycluster.openshift.net"
+    subject_alt_name:
+      - "DNS:api.mycluster.openshift.net"
+  become: True
+
+- name: Create API self-signed certificate
+  community.crypto.x509_certificate:
+    path: "{{ dir }}/12-api-cert/tls.crt"
+    csr_path: "{{ dir }}/12-api-cert/tls.csr"
+    privatekey_path: "{{ dir }}/12-api-cert/tls.key"
+    provider: selfsigned
+    selfsigned_not_after: "+365d"
+  become: True
+
+- name: Slurp API certificate file
+  slurp:
+    src: "{{ dir }}/12-api-cert/tls.crt"
+  register: slurped_api_crt
+  become: True
+
+- name: Slurp API key file
+  slurp:
+    src: "{{ dir }}/12-api-cert/tls.key"
+  register: slurped_api_key
+  become: True
+
+- name: Write API certificate to master
+  copy:
+    content: "{{ slurped_api_crt['content'] | b64decode }}"
+    dest: "{{ master_dir }}/12-api-cert/tls.crt"
+    mode: "0644"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Write API key to master
+  copy:
+    content: "{{ slurped_api_key['content'] | b64decode }}"
+    dest: "{{ master_dir }}/12-api-cert/tls.key"
+    mode: "0600"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Create API TLS secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: custom-api-cert
+        namespace: openshift-config
+      type: kubernetes.io/tls
+      data:
+        tls.crt: "{{ slurped_api_crt['content'] }}"
+        tls.key: "{{ slurped_api_key['content'] }}"
+
+- name: Patch APIServer to use custom TLS secret
+  kubernetes.core.k8s:
+    state: patched
+    kind: APIServer
+    name: cluster
+    definition:
+      spec:
+        servingCerts:
+          namedCertificates:
+            - names:
+                - "api.mycluster.openshift.net"
+              servingCertificate:
+                name: custom-api-cert
+
+- name: Trust new certifacte
+  include_tasks: trust-cert.yml

@@ -1,0 +1,39 @@
+- name: Create ConfigMap with both API and Ingress CAs
+  kubernetes.core.k8s:
+    state: present
+    verify_ssl: False
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: my-custom-ca
+        namespace: openshift-config
+      data:
+        ca-bundle.crt: |
+          {{ slurped_api_crt['content'] | b64decode }}
+          {{ slurped_ingress_crt['content'] | b64decode }}
+
+- name: Patch Proxy to trust the new CA
+  kubernetes.core.k8s:
+    state: patched
+    verify_ssl: False
+    definition:
+      apiVersion: config.openshift.io/v1
+      kind: Proxy
+      metadata:
+        name: cluster
+      spec:
+        trustedCA:
+          name: my-custom-ca
+
+- name: Update CA trust on master
+  copy:
+    content: "{{ slurped_api_crt['content'] | b64decode }}"
+    dest: /etc/pki/ca-trust/source/anchors/openshift-api.crt
+  become: True
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Update the system trust database
+  command: update-ca-trust extract
+  become: True
+  delegate_to: "{{ groups['masters'][0] }}"
