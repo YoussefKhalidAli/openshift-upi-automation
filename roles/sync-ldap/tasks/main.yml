@@ -1,0 +1,27 @@
+- name: Get OpenLDAP Service ClusterIP
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Service
+    name: openldap
+    namespace: ldap
+  register: ldap_svc
+
+- name: Set LDAP service IP fact
+  set_fact:
+    ldap_service_ip: "{{ ldap_svc.resources[0].spec.clusterIP }}"
+
+- name: Copy LDAP sync playbook to master
+  template:
+    src: "ldap-sync.yml.j2"
+    dest: "{{ master_dir }}/08-ldap-sync/ldap-sync.yml"
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- name: Copy LDAP sync playbook localy
+  template:
+    src: "ldap-sync.yml.j2"
+    dest: "{{ dir }}/08-ldap-sync/ldap-sync.yml"
+  become: True
+
+- name: Sync LDAP groups to OCP
+  command: 'oc adm groups sync --sync-config="{{ master_dir }}/08-ldap-sync/ldap-sync.yml" --confirm'
+  delegate_to: "{{ groups['masters'][0] }}"

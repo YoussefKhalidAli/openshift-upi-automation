@@ -1,0 +1,36 @@
+kind: LDAPSyncConfig
+apiVersion: v1
+
+url: ldap://{{ ldap_service_ip }}:389
+
+bindDN: cn=admin,dc=openshift,dc=net
+bindPassword: adminpassword
+
+insecure: true
+
+rfc2307:
+  groupsQuery:
+    baseDN: "ou=groups,dc=openshift,dc=net"
+    scope: sub
+    derefAliases: never
+    pageSize: 0
+    filter: "(objectClass=groupOfNames)"
+
+  groupUIDAttribute: dn
+  groupNameAttributes:
+    - cn
+  groupMembershipAttributes:
+    - member
+
+  usersQuery:
+    baseDN: "ou=users,dc=openshift,dc=net"
+    scope: sub
+    derefAliases: never
+    pageSize: 0
+
+  userUIDAttribute: dn
+  userNameAttributes:
+    - uid
+
+  tolerateMemberNotFoundErrors: true
+  tolerateMemberOutOfScopeErrors: true

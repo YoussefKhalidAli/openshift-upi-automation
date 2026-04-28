@@ -77,6 +77,15 @@
   copy:
     dest: "{{ dir }}/06-ldap-provider/ldif"
     content: |
+      dn: ou=groups,dc=openshift,dc=net
+      objectClass: organizationalUnit
+      ou: groups
+
+      dn: cn=admins,ou=groups,dc=openshift,dc=net
+      objectClass: groupOfNames
+      cn: admins
+      member: uid=ldap-user,ou=users,dc=openshift,dc=net
+
       dn: ou=users,dc=openshift,dc=net
       objectClass: organizationalUnit
       ou: users

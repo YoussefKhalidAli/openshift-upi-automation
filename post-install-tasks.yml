@@ -21,3 +21,5 @@
       role: ldap-provider
     - name: 07. Remove default kubeadmin user
       role: remove-kubeadmin
+    - name: 08. Syncing specific groups  from ldap
+      role: sync-ldap

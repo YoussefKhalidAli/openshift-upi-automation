@@ -1,3 +1,10 @@
+- name: Install required python packages
+  apt:
+    name:
+      - python3-kubernetes
+      - python3-ldap
+    state: present
+
 - name: Create neccessary directories on master
   file:
     state: directory
@@ -8,6 +15,7 @@
     - "{{ master_dir }}"
     - "{{ master_dir }}/01-mcp"
     - "{{ master_dir }}/05-htpass-users"
+    - "{{ master_dir }}/08-ldap-sync"
   delegate_to: "{{ groups['masters'][0] }}"
 
 - name: Create neccessary directories locally
@@ -20,6 +28,7 @@
     - "{{ dir }}/01-mcp"
     - "{{ dir }}/05-htpass-users"
     - "{{ dir }}/06-ldap-provider"
+    - "{{ dir }}/08-ldap-sync"
 
 - name: Copy kubeconfig to master
   copy:
