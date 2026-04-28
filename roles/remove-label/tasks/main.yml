@@ -1,0 +1,12 @@
+- name: Remove a specific label from a node
+  kubernetes.core.k8s:
+    state: patched
+    kind: Node
+    name: "{{ item }}"
+    definition:
+      metadata:
+        labels:
+          node-role.kubernetes.io/worker: null
+  loop:
+    - "{{ infra0.name }}"
+    - "{{ odf0.name }}"
