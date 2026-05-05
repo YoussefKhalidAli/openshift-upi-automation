@@ -12,3 +12,15 @@ variable "instances" {
     instance_type   = string
   }))
 }
+
+variable "bootstrapign" {
+  type = string
+}
+
+variable "masterign" {
+  type = string
+}
+
+variable "workerign" {
+  type = string
+}

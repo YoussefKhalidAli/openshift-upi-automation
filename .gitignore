@@ -7,8 +7,10 @@ terraform/openshift-aws/.terraform
 *.tfstate
 *.tfstate.backup
 *.tfvars
+*.lock*
 terraform/openshift-aws/generated
 vpc.tf
+ignitions.auto.tfvars.json
 
 # AWS User-data
 user-data/*-data
