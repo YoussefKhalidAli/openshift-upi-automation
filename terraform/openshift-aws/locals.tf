@@ -5,7 +5,7 @@ locals {
       private_ip      = "10.0.1.100"
       security_groups = ["sg-0aad32212ee911474"]
       instance_type   = "t3.large"
-      ign             = var.workerign
+      ign             = var.bootstrapign
     }
 
     "openshift-master0" = {
