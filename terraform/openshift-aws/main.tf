@@ -7,11 +7,12 @@ provider "aws" {
 #################################
 
 resource "aws_network_interface" "enis" {
-  for_each = var.instances
+  for_each = local.instances
 
   subnet_id       = "subnet-0b00b43a13acdb448"
   private_ips     = [each.value.private_ip]
-  security_groups = ["sg-0aad32212ee911474"]
+  security_groups = each.value.security_groups
+
   tags = {
     Name = "${each.key}-eni"
   }
@@ -22,7 +23,7 @@ resource "aws_network_interface" "enis" {
 #################################
 
 resource "aws_instance" "nodes" {
-  for_each = var.instances
+  for_each = local.instances
 
   ami           = var.ami
   instance_type = each.value.instance_type
@@ -53,5 +54,7 @@ resource "aws_instance" "nodes" {
     Name = each.key
   }
 
-  user_data = each.value.user_data
+  user_data = templatefile("${path.module}/ignition.tpl", {
+    source = each.value.ign
+  })
 }
