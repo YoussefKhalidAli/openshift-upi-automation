@@ -8,22 +8,25 @@
 - name: Create neccessary directories on master
   file:
     state: directory
-    path: "{{ item }}"
+    path: "{{ looped_master_dir }}"
     owner: core
     group: core
   loop:
+    - "/home/core/.kube"
     - "{{ master_dir }}"
     - "{{ master_dir }}/01-mcp"
     - "{{ master_dir }}/05-htpass-users"
     - "{{ master_dir }}/08-ldap-sync"
     - "{{ master_dir }}/11-ingress-cert"
     - "{{ master_dir }}/12-api-cert"
+  loop_control:
+    loop_var: looped_master_dir
   delegate_to: "{{ groups['masters'][0] }}"
 
 - name: Create neccessary directories locally
   file:
     state: directory
-    path: "{{ item }}"
+    path: "{{ looped_dir }}"
   become: True
   loop:
     - "{{ dir }}"
@@ -33,47 +36,32 @@
     - "{{ dir }}/08-ldap-sync"
     - "{{ dir }}/11-ingress-cert"
     - "{{ dir }}/12-api-cert"
+  loop_control:
+    loop_var: looped_dir
 
 - name: Copy kubeconfig to master
   copy:
     src: "{{ kubeconfig }}"
-    dest: /home/core/kube
+    dest: /home/core/.kube/config
     owner: core
     group: core
     mode: "0600"
   delegate_to: "{{ groups['masters'][0] }}"
 
-- name: Get all CSRs
-  kubernetes.core.k8s_info:
-    api_version: certificates.k8s.io/v1
-    kind: CertificateSigningRequest
-  register: csr_list
-
-- name: Approve pending CSRs
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: certificates.k8s.io/v1
-      kind: CertificateSigningRequest
-      metadata:
-        name: "{{ item.metadata.name }}"
-      status:
-        conditions:
-          - type: Approved
-            status: "True"
-            reason: AnsibleApprove
-            message: "Approved by Ansible"
-  loop: "{{ csr_list.resources }}"
-  when: item.status.conditions is not defined
-
-- name: Copy kubeconfig to master(default kubeconfig path)
-  copy:
-    src: "{{ kubeconfig }}"
-    dest: ~/.kube/config
-    owner: core
-    group: core
-    mode: "0600"
-  delegate_to: "{{ groups['masters'][0] }}"
+- name: Approve CSRs
+  include_tasks: approve-csrs.yml
+  vars:
+    csr_username: "{{ csr.username }}"
+    csr_signer: "{{ csr.signer }}"
+  loop:
+    - username: "system:serviceaccount:openshift-machine-config-operator:node-bootstrapper"
+      signer: "kubernetes.io/kube-apiserver-client-kubelet"
+    - username: "system:node:ip-10-0-1-"
+      signer: "kubernetes.io/kubelet-serving"
+    - username: "system:node:ip-10-0-1-"
+      signer: "kubernetes.io/kube-apiserver-client"
+  loop_control:
+    loop_var: csr
 
 # Install helm
 - name: Download Helm install script

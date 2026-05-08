@@ -98,30 +98,38 @@
       userPassword: {SSHA}Qu7a/Uwx8V0FR+mou78pUroWNvxDBpfk
   become: True
 
+- name: Wait for OpenLDAP pod to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: ldap
+    label_selectors:
+      - app=openldap
+    kubeconfig: "{{ kubeconfig }}"
+  register: ldap_pods
+  retries: 30
+  delay: 5
+  until:
+    - ldap_pods.resources | length > 0
+    - ldap_pods.resources[0].status.phase == "Running"
+    - ldap_pods.resources[0].status.containerStatuses[0].ready == true
+
 - name: Copy LDIF to OpenLDAP pod
   kubernetes.core.k8s_cp:
     namespace: ldap
-    pod: "{{ item }}"
+    pod: "{{ ldap_pods.resources[0].metadata.name }}"
     local_path: "{{ dir }}/06-ldap-provider/ldif"
     remote_path: /tmp/new_user.ldif
-  loop: "{{ query('kubernetes.core.k8s', kind='Pod', namespace='ldap', label_selector='app=openldap', kubeconfig=kubeconfig) | map(attribute='metadata.name') | list }}"
 
 - name: Add ldap-user using the copied LDIF
   kubernetes.core.k8s_exec:
     namespace: ldap
-    pod: "{{ item }}"
+    pod: "{{ ldap_pods.resources[0].metadata.name }}"
     command: >
       ldapadd -x
       -D "cn=admin,dc=openshift,dc=net"
       -w "adminpassword"
       -f /tmp/new_user.ldif
-  loop: "{{ query('kubernetes.core.k8s',
-    kind='Pod',
-    namespace='ldap',
-    label_selector='app=openldap',
-    kubeconfig=kubeconfig)
-    | map(attribute='metadata.name') | list }}"
   register: ldap_add_result
   failed_when: >
-    ldap_add_result.rc != 0 and
-    ('Already exists' not in ldap_add_result.stderr)
+    ldap_add_result.failed and
+    ('Already exists' not in (ldap_add_result.stderr | default('')))
