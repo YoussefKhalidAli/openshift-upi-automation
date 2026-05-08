@@ -1,6 +1,30 @@
+# TODO: Add back when kubernetes.core version is 6.5.0
+# - name: Embed CA cert into kubeconfig cluster
+#   kubernetes.core.kubeconfig:
+#     path: "{{ kubeconfig }}"
+#     clusters:
+#       - name: mycluster
+#         cluster:
+#           certificate-authority-data: "{{ slurped_api_crt['content'] }}"
+#   become: True
+#   register: updated_kubeconfig
+
+# - name: Slurp updated kubeconfig
+#   slurp:
+#     src: "{{ kubeconfig }}"
+#   register: slurped_kubeconfig
+#   become: True
+
+# - name: Write updated kubeconfig to master
+#   copy:
+#     content: "{{ slurped_kubeconfig['content'] | b64decode }}"
+#     dest: "/home/core/.kube/config"
+#   delegate_to: "{{ groups['masters'][0] }}"
+
 - name: Create ConfigMap with both API and Ingress CAs
   kubernetes.core.k8s:
     state: present
+    # Remove in kubernetes.core version 6.5.0
     verify_ssl: False
     definition:
       apiVersion: v1
@@ -16,6 +40,7 @@
 - name: Patch Proxy to trust the new CA
   kubernetes.core.k8s:
     state: patched
+    # Remove in kubernetes.core version 6.5.0
     verify_ssl: False
     definition:
       apiVersion: config.openshift.io/v1
