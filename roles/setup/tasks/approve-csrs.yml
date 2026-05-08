@@ -1,0 +1,44 @@
+- name: Wait until at least {{ workers_num }} {{ csr_signer }} CSRs exist
+  kubernetes.core.k8s_info:
+    api_version: certificates.k8s.io/v1
+    kind: CertificateSigningRequest
+  register: csrs_list
+  until: >
+    (
+      csrs_list.resources
+      | selectattr( 'spec.signerName', 'equalto', csr_signer )
+      | selectattr('spec.username', 'search', csr_username)
+      | list
+      | length
+    ) >= workers_num
+  retries: 60
+  delay: 60
+
+- name: Save filtered CSRs
+  set_fact:
+    csrs_list_filtered: >-
+      {{
+        csrs_list.resources
+        | selectattr( 'spec.signerName', 'equalto', csr_signer )
+        | selectattr('spec.username', 'search', csr_username)
+        | list
+      }}
+
+- name: Create list of CSR names
+  set_fact:
+    csr_names: >-
+      {{
+        csrs_list_filtered
+        | map(attribute='metadata.name')
+        | list
+      }}
+
+- name: Approve pending {{ csr_signer }} CSRs
+  command: oc adm certificate approve {{ csr_name }}
+  loop: "{{ csr_names }}"
+  loop_control:
+    loop_var: csr_name
+  delegate_to: "{{ groups['masters'][0] }}"
+
+- debug:
+    msg: "Approved {{csr_signer}} CSRs for {{ csr_username }}"
