@@ -1,0 +1,267 @@
+# 1. Create namespaces
+- name: Create openshift-local-storage namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: openshift-local-storage
+        labels:
+          openshift.io/cluster-monitoring: "true"
+
+- name: Create openshift-storage namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: openshift-storage
+        labels:
+          openshift.io/cluster-monitoring: "true"
+
+# 2. OperatorGroups
+- name: Create LSO OperatorGroup
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1
+      kind: OperatorGroup
+      metadata:
+        name: openshift-local-storage-operatorgroup
+        namespace: openshift-local-storage
+      spec:
+        targetNamespaces:
+          - openshift-local-storage
+
+- name: Create ODF OperatorGroup
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1
+      kind: OperatorGroup
+      metadata:
+        name: openshift-storage-operatorgroup
+        namespace: openshift-storage
+      spec:
+        targetNamespaces:
+          - openshift-storage
+
+# 3. Subscriptions
+- name: Create LSO Subscription
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: Subscription
+      metadata:
+        name: local-storage-operator
+        namespace: openshift-local-storage
+      spec:
+        channel: stable
+        installPlanApproval: Automatic
+        name: local-storage-operator
+        source: redhat-operators
+        sourceNamespace: openshift-marketplace
+
+- name: Create ODF Subscription
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: Subscription
+      metadata:
+        name: odf-operator
+        namespace: openshift-storage
+      spec:
+        channel: stable-4.21
+        installPlanApproval: Automatic
+        name: odf-operator
+        source: redhat-operators
+        sourceNamespace: openshift-marketplace
+
+# 4. Wait for operators
+- name: Wait for LSO CSV to succeed
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: openshift-local-storage
+  register: lso_csv
+  until: >
+    lso_csv.resources | selectattr('metadata.name', 'search', 'local-storage-operator')
+    | selectattr('status.phase', 'equalto', 'Succeeded') | list | length > 0
+  retries: 30
+  delay: 30
+
+- name: Wait for ODF CSV to succeed
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    namespace: openshift-storage
+  register: odf_csv
+  until: >
+    odf_csv.resources 
+    | selectattr('metadata.name', 'match', '^odf-operator\.') 
+    | selectattr('status.phase', 'equalto', 'Succeeded') 
+    | list | length > 0
+  retries: 30
+  delay: 30
+
+# 6. Create LocalVolumeDiscovery to auto-discover disks
+- name: Create LocalVolumeDiscovery
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: local.storage.openshift.io/v1alpha1
+      kind: LocalVolumeDiscovery
+      metadata:
+        name: auto-discover-devices
+        namespace: openshift-local-storage
+      spec:
+        nodeSelector:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: node-role.kubernetes.io/openshift-storage
+                  operator: Exists
+        tolerations:
+          - key: "cluster.ocs.openshift.io/openshift-storage"
+            operator: "Exists"
+            effect: "NoSchedule"
+
+- name: Wait for LocalVolumeDiscovery to complete
+  kubernetes.core.k8s_info:
+    api_version: local.storage.openshift.io/v1alpha1
+    kind: LocalVolumeDiscoveryResult
+    namespace: openshift-local-storage
+  register: discovery_results
+  until: discovery_results.resources | length > 0
+  retries: 20
+  delay: 15
+
+# 7. Create LocalVolumeSet to claim the raw disk
+- name: Create LocalVolumeSet
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: local.storage.openshift.io/v1alpha1
+      kind: LocalVolumeSet
+      metadata:
+        name: local-block
+        namespace: openshift-local-storage
+      spec:
+        nodeSelector:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: node-role.kubernetes.io/openshift-storage
+                  operator: Exists
+        storageClassName: localblock
+        volumeMode: Block
+        fsType: ext4
+        maxDeviceCount: 1
+        deviceInclusionSpec:
+          deviceTypes:
+            - disk
+            - part
+          minSize: 10Gi
+        tolerations:
+          - key: "cluster.ocs.openshift.io/openshift-storage"
+            operator: "Exists"
+            effect: "NoSchedule"
+
+- name: Wait for localblock PVs to be created
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: PersistentVolume
+  register: pv_list
+  until: >
+    pv_list.resources | selectattr('spec.storageClassName', 'equalto', 'localblock')
+    | list | length > 0
+  retries: 20
+  delay: 15
+
+# 8. Create StorageCluster
+- name: Create StorageCluster
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: ocs.openshift.io/v1
+      kind: StorageCluster
+      metadata:
+        name: ocs-storagecluster
+        namespace: openshift-storage
+        annotations:
+          uninstall.ocs.openshift.io/cleanup-policy: delete
+          uninstall.ocs.openshift.io/mode: graceful
+      spec:
+        placement:
+          all:
+            nodeSelector:
+              node-role.kubernetes.io/infra: ""
+            tolerations:
+              - key: "cluster.ocs.openshift.io/openshift-storage"
+                operator: "Exists"
+                effect: "NoSchedule"
+              - key: "node-role.kubernetes.io/infra"
+                operator: "Exists"
+                effect: "NoSchedule"
+        allowSingleNode: true
+        monDataDirHostPath: /var/lib/rook
+        managedResources:
+          cephBlockPools:
+            reconcileStrategy: manage
+          cephFilesystems:
+            reconcileStrategy: manage
+          cephObjectStoreUsers:
+            reconcileStrategy: manage
+          cephObjectStores:
+            reconcileStrategy: manage
+        storageDeviceSets:
+          - count: 1
+            dataPVCTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: "150Gi"
+                storageClassName: localblock
+                volumeMode: Block
+            name: ocs-deviceset
+            portable: false
+            replica: 1
+            resources: {}
+
+- name: Create StorageCluster
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: rook-ceph-operator-config
+        namespace: openshift-storage
+      data:
+        CSI_PLUGIN_TOLERATIONS: |
+          - key: "cluster.ocs.openshift.io/openshift-storage"
+            operator: "Exists"
+            effect: "NoSchedule"
+          - key: "node-role.kubernetes.io/infra"
+            operator: "Exists"
+            effect: "NoSchedule"
+# 9. Wait for StorageCluster
+- name: Wait for StorageCluster to be ready
+  kubernetes.core.k8s_info:
+    api_version: ocs.openshift.io/v1
+    kind: StorageCluster
+    name: ocs-storagecluster
+    namespace: openshift-storage
+  register: sc_status
+  # until: >
+  #   sc_status.resources | length > 0 and
+  #   sc_status.resources[0].status.phase == 'Ready'
+  # retries: 40
+  # delay: 30
+
+- debug:
+    msg: "StorageCluster status: {{ sc_status.resources[0]}}"
